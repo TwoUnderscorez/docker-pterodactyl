@@ -4,22 +4,22 @@ x-common:
     &db-environment
     # Do not remove the "&db-password" from the end of the line below, it is important
     # for Panel functionality.
-    MYSQL_PASSWORD: &db-password "CHANGE_ME"
-    MYSQL_ROOT_PASSWORD: "CHANGE_ME"
+    MYSQL_PASSWORD: &db-password "{MYSQL_PASSWORD:?error}"
+    MYSQL_ROOT_PASSWORD: "{MYSQL_ROOT_PASSWORD:?error}"
   panel:
     &panel-environment
     APP_URL: "https://panel.example.com"
     # A list of valid timezones can be found here: http://php.net/manual/en/timezones.php
-    APP_TIMEZONE: "UTC"
-    APP_SERVICE_AUTHOR: "admin@example.com"
+    APP_TIMEZONE: "Asia/Jerusalem"
+    APP_SERVICE_AUTHOR: "ron@yutk.in"
   mail:
     &mail-environment
-    MAIL_FROM: "noreply@example.com"
+    MAIL_FROM: "${SMTP_MAIL_FROM:?error}"
     MAIL_DRIVER: "smtp"
     MAIL_HOST: "mail"
-    MAIL_PORT: "1025"
-    MAIL_USERNAME: ""
-    MAIL_PASSWORD: ""
+    MAIL_PORT: "${SMTP_PORT:?error}"
+    MAIL_USERNAME: "${SMTP_USERNAME:?error}"
+    MAIL_PASSWORD: "${SMTP_PASSWORD:?error}"
     MAIL_ENCRYPTION: "true"
 
 #
@@ -39,7 +39,7 @@ services:
       - local
     command: --default-authentication-plugin=mysql_native_password
     volumes:
-      - "${DATA_DIR}/database:/var/lib/mysql"
+      - "mysql_data:/var/lib/mysql"
     environment:
       <<: *db-environment
       MYSQL_DATABASE: "panel"
@@ -55,15 +55,16 @@ services:
     image: ghcr.io/pterodactyl/panel:v1.11.10
     restart: always
     networks:
-      - pterodactyl
-      - local
+      pterodactyl:
+      services:
+        ipv4_address: ${IPV4_ADDR:?error}
     links:
       - database
       - cache
     volumes:
-      - "${DATA_DIR}/panel/var/:/app/var/"
-      - "${DATA_DIR}/panel/logs/:/app/storage/logs"
-      - "${DATA_DIR}/panel/nginx/:/etc/nginx/conf.d/"
+      - "panel_var:/app/var/"
+      - "panel_logs:/app/storage/logs"
+      - "nginx_conf:/etc/nginx/conf.d/"
     environment:
       <<: [*panel-environment, *mail-environment]
       DB_PASSWORD: *db-password
@@ -78,22 +79,25 @@ services:
     labels:
       # HTTP
       - "traefik.http.routers.pterodactyl_panel.entrypoints=web"
-      - "traefik.http.routers.pterodactyl_panel.rule=Host(`${PANEL_DOMAIN}`)"
-      - "traefik.http.routers.pterodactyl_panel.middlewares=panel_https"
-      - "traefik.http.middlewares.panel_https.redirectscheme.scheme=https"
+      - "traefik.http.routers.pterodactyl_panel.rule=Host(`${PANEL_DOMAIN:?error}`)"
+      # - "traefik.http.routers.pterodactyl_panel.middlewares=panel_https"
+      # - "traefik.http.middlewares.panel_https.redirectscheme.scheme=https"
       # HTTPS
-      - "traefik.http.routers.pterodactyl_panel-https.entrypoints=websecure"
-      - "traefik.http.routers.pterodactyl_panel-https.rule=Host(`${PANEL_DOMAIN}`)"
-      - "traefik.http.routers.pterodactyl_panel-https.tls=true"
-      - "traefik.http.routers.pterodactyl_panel-https.tls.certresolver=letsencrypt"
-      - "traefik.http.services.pterodactyl_panel-https.loadbalancer.server.port=80"
+      # - "traefik.http.routers.pterodactyl_panel-https.entrypoints=websecure"
+      # - "traefik.http.routers.pterodactyl_panel-https.rule=Host(`${PANEL_DOMAIN:?error}`)"
+      # - "traefik.http.routers.pterodactyl_panel-https.tls=true"
+      # - "traefik.http.routers.pterodactyl_panel-https.tls.certresolver=letsencrypt"
+      # - "traefik.http.services.pterodactyl_panel-https.loadbalancer.server.port=80"
+
+volumes:
+  panel_var:
+  panel_logs:
+  nginx_conf:
+  mysql_data:
 
 networks:
   local:
     external: false
-  pterodactyl:
+  services:
+    name: hexos-services
     external: true
-  default:
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16
