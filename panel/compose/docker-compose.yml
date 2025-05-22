@@ -98,6 +98,7 @@ volumes:
 networks:
   local:
     external: false
+    internal: true
   services:
     name: hexos-services
     external: true
