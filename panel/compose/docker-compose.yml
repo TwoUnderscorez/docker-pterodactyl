@@ -55,7 +55,7 @@ services:
     image: ghcr.io/pterodactyl/panel:v1.11.10
     restart: always
     networks:
-      pterodactyl:
+      local:
       services:
         ipv4_address: ${IPV4_ADDR:?error}
     links:
