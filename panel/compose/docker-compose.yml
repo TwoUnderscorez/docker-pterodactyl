@@ -52,7 +52,7 @@ services:
       - local
 
   panel:
-    image: ghcr.io/pterodactyl/panel:v1.11.10
+    image: ghcr.io/pterodactyl/panel:v1.11.11
     restart: always
     networks:
       local:
